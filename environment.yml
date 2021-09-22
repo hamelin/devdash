@@ -1,0 +1,14 @@
+name: devdash
+dependencies:
+    - python>=3.7
+    - pytest
+    - flake8
+    - mypy
+    - setuptools
+    - ipywidgets
+    - watchdog
+    - ipykernel
+    - twine
+    - pip
+    - pip:
+        -e .

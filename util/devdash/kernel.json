@@ -1,0 +1,15 @@
+{
+    "argv": [
+        "conda",
+        "run",
+        "-n",
+        "devdash",
+        "python",
+        "-m",
+        "ipykernel_launcher",
+        "-f",
+        "{connection_file}"
+    ],
+    "display_name": "DevDash Demo (Python 3)",
+    "language": "python"
+}
