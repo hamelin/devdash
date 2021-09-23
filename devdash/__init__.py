@@ -113,6 +113,16 @@ class CheckerLinewise(Checker):
         self.container.selected_index = None
         return HBox(children=[self.trafficlight, self.container])
 
+    @property
+    @abstractmethod
+    def title(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def command(self) -> List[str]:
+        ...
+
     @abstractmethod
     def iter_issues(self, stdout: str) -> Iterator[Issue]:
         ...
@@ -189,9 +199,13 @@ class Flake8(CheckerLinewise):
         for line in stdout.split("\n"):
             try:
                 path, lineno, column, issue = line.split(":", maxsplit=3)
-                yield (path, lineno, column, [issue.strip()], "")
+                issue = issue.strip()
+                if any([path, lineno, column, issue]):
+                    yield (path, lineno, column, [issue], "")
             except ValueError:
-                yield ("", "", "", [], line)
+                line = line.strip()
+                if line:
+                    yield ("", "", "", [], line)
 
 
 class MyPy(CheckerLinewise):
