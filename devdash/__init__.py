@@ -12,6 +12,15 @@ from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 # from watchdog.observers import Observer
 
 
+def _event_path(event: FileSystemEvent) -> Path:
+    return Path(event.src_path)
+
+
+def _hash(path: Path) -> bytes:
+    assert path.is_file()
+    return md5(path.read_bytes()).digest()
+
+
 class Checker(ABC, PatternMatchingEventHandler):
 
     def __init__(self):
@@ -33,19 +42,27 @@ class Checker(ABC, PatternMatchingEventHandler):
         display(self.ui)
 
     def on_created(self, event: FileSystemEvent) -> None:
-        self.run_update()
+        p = _event_path(event)
+        if p.is_file():
+            self._run_update_on_distinct_hash(p, _hash(p))
 
     def on_deleted(self, event: FileSystemEvent) -> None:
-        self.run_update()
+        self._run_update_on_distinct_hash(_event_path(event), b"")
 
     def on_moved(self, event: FileSystemEvent) -> None:
-        self.run_update()
+        self.hashes[Path(event.src_path)] = b""
+        d = Path(event.dest_path)
+        if d.is_file():
+            self._run_update_on_distinct_hash(d, _hash(d))
 
     def on_modified(self, event: FileSystemEvent) -> None:
-        p = Path(event.src_path)
-        h = md5(p.read_bytes()).digest()
-        if h != self.hashes.get(p):
-            self.hashes[p] = h
+        p = _event_path(event)
+        if p.is_file():
+            self._run_update_on_distinct_hash(p, _hash(p))
+
+    def _run_update_on_distinct_hash(self, path: Path, h: bytes) -> None:
+        if h != self.hashes.get(path):
+            self.hashes[path] = h
             self.run_update()
 
     @abstractmethod

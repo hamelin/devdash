@@ -3,7 +3,6 @@ from copy import copy
 from enum import Enum, auto
 from pathlib import Path
 from shutil import rmtree
-from tempfile import TemporaryDirectory
 import time
 from typing import *  # noqa
 
@@ -13,6 +12,7 @@ from watchdog.observers import Observer
 import pytest
 
 import devdash as dd
+from test import tree_project
 
 
 class NameEvent(Enum):
@@ -85,17 +85,6 @@ class ObservationTest(dd.Checker):
 
     def on_modified(self, event: FileSystemEvent) -> None:
         self.record_event(NameEvent.MODIFIED, event.src_path)
-
-
-@contextmanager
-def tree_project() -> Iterator[Path]:
-    with TemporaryDirectory() as name_dir:
-        dir = Path(name_dir)
-        (dir / "environment.yml").write_text("name: dummy\n")
-        (dir / "dummy").mkdir()
-        (dir / "dummy" / "__init__.py").write_text("print('Hello world!')\n")
-        (dir / "setup.py").write_text("import setuptools\n")
-        yield dir
 
 
 @contextmanager
