@@ -16,8 +16,15 @@ class Checker(ABC, PatternMatchingEventHandler):
 
     def __init__(self):
         super().__init__(
-            patterns=["*.py", "environment.yml"],
-            ignore_patterns=["**/.ipynb_checkpoints/*", ".~*"]
+            patterns=["*.py", "*.yml", "*.ini", "*.toml", "*.cfg", "*.json", ".flake8"],
+            ignore_patterns=[
+                "**/.ipynb_checkpoints/*",
+                ".~*",
+                "__pycache__",
+                "*.pyc",
+                "*.pyd"
+            ],
+            ignore_directories=False
         )
         self.hashes: Dict[Path, bytes] = {}
         self.ui = self.init_ui()
@@ -74,6 +81,9 @@ class TrafficLight(HTML):
 
     def red(self) -> None:
         self.update_value("red")
+
+
+Issue = Tuple[str, str, str, List[str], str]
 
 
 class CheckerLinewise(Checker):
@@ -146,9 +156,6 @@ class CheckerLinewise(Checker):
             self.trafficlight.green()
             self.container.set_title(0, f"{self.title}: all good!")
             self.container.index_selected = None
-
-
-Issue = Tuple[str, str, str, List[str], str]
 
 
 class Flake8(CheckerLinewise):
