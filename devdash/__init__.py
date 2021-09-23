@@ -321,7 +321,12 @@ def deansi(s: str) -> str:
     return re.sub("\x1b\\[.+?m", "", s)
 
 
-def _expect_line(stdout, prefix: str = "", suffix: str = "", substr: str = "") -> None:
+def _expect_line(
+    stdout: Iterator[str],
+    prefix: str = "",
+    suffix: str = "",
+    substr: str = ""
+) -> None:
     line = deansi(next(stdout).rstrip())
     if not line.startswith(prefix):
         raise ValueError(f"Line [{line[:-1]}] does not start with prefix [{prefix}]")
