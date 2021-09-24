@@ -234,15 +234,16 @@ class MyPy(CheckerLinewise):
                 parts_head = head.split(":")
                 while len(parts_head) < 3:
                     parts_head.append("")
-                path, lineno, column = parts_head[:3]
+                path, lineno, column = [part.strip() for part in parts_head[:3]]
             elif ": " in line:
                 parts = line.split(": ")
-                lines_issue.append(parts[-1])
+                lines_issue.append(parts[-1].strip())
             else:
                 if path:
                     yield (path, lineno, column, lines_issue, "")
                 path = ""
-                yield ("", "", "", [], line)
+                if line:
+                    yield ("", "", "", [], line)
         if path:
             yield (path, lineno, column, lines_issue, "")
 
