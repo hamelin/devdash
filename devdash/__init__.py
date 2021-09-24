@@ -337,9 +337,15 @@ class Pytest(Checker):
             self.failures.set_title(i, f"{name_test} in {path_test}")
             out = Output()
             for line in stdout:
-                out.append_stdout(line)
-                if path_test in line.replace("\\", "/"):
+                line_no_code = deansi(line).strip()
+                if any(
+                    line_no_code.startswith(sep * 8) and line_no_code.endswith(sep * 8)
+                    for sep in ["_", "="]
+                ):
+                    # Found the header to the next failure or to the final summary.
+                    stdout = chain([line], cast(Iterator[str], stdout))
                     break
+                out.append_stdout(line)
             children_new.append(out)
         self.failures.children = children_new
         self.failures.selected_index = 0
