@@ -1,8 +1,6 @@
 from textwrap import dedent
 from typing import *  # noqa
 
-import pytest
-
 from devdash import Issue, MyPy
 
 
@@ -17,7 +15,8 @@ def test_issues_empty() -> None:
 def test_issues_oneliners_with_column() -> None:
     run_test_issue_parsing(
         """
-        dummy\\__init__.py:29:19: error: Argument 1 to "foo" has incompatible type "int"; expected "str"
+        dummy\\__init__.py:29:19: error: Argument 1 to "foo" has incompatible type \
+"int"; expected "str"
         dummy/heyhey.py:8:1: error: Missing return statement
         """,
         [
@@ -42,7 +41,8 @@ def test_issues_oneliners_with_column() -> None:
 def test_issues_oneliners_missing_column() -> None:
     run_test_issue_parsing(
         """
-        dummy\\__init__.py:29: error: Argument 1 to "foo" has incompatible type "int"; expected "str"
+        dummy\\__init__.py:29: error: Argument 1 to "foo" has incompatible type "int"; \
+expected "str"
         dummy/heyhey.py:8:1: error: Missing return statement
         dummy/heyhey.py:139: error: Something something
         """,
@@ -75,7 +75,8 @@ def test_issues_oneliners_missing_column() -> None:
 def test_issues_multiliners() -> None:
     run_test_issue_parsing(
         """
-        dummy\\__init__.py:29: error: Argument 1 to "foo" has incompatible type "int"; expected "str"
+        dummy\\__init__.py:29: error: Argument 1 to "foo" has incompatible type "int"; \
+expected "str"
         dummy\\__init__.py:29: note: Speak to the manager
                             note:    Or their direct supervisor
         dummy/heyhey.py:139:1: error: Missing return statement
@@ -108,7 +109,8 @@ def test_issues_line_malformed() -> None:
     run_test_issue_parsing(
         """
         Malformed line
-        dummy\\__init__.py:29: error: Argument 1 to "foo" has incompatible type "int"; expected "str"
+        dummy\\__init__.py:29: error: Argument 1 to "foo" has incompatible type "int"; \
+expected "str"
         More weird output
         Two in a row actually
         dummy/heyhey.py:139:1: error: Missing return statement
