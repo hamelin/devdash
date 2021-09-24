@@ -43,7 +43,7 @@ class ObservationTest(dd.Checker):
             if s <= self.events:
                 self.observer.stop()
 
-    def assert_events(self, *possibilities: Set[Event]) -> None:
+    def assert_events(self, *possibilities: Set[Event], exact: bool = False) -> None:
         self.track(list(possibilities))
         try:
             self.observer.join(timeout=5.0)
@@ -51,6 +51,14 @@ class ObservationTest(dd.Checker):
                 pytest.fail(
                     f"Expected events from either set {self.tracked}, but got "
                     f"{self.events}."
+                )
+            if exact:
+                for expected in possibilities:
+                    if expected == self.events:
+                        return
+                pytest.fail(
+                    "Needed exact event correspondance from one of the sets in "
+                    f"{self.tracked}, but got {self.events}."
                 )
         finally:
             self.observer.stop()
@@ -177,3 +185,12 @@ def test_observe_truncate() -> None:
     with observation_test() as (dir, ot):
         (dir / "dummy" / "__init__.py").write_text("")
         ot.assert_events({(NameEvent.MODIFIED, dir / "dummy" / "__init__.py", None)})
+
+
+def test_mypy_cache() -> None:
+    with observation_test() as (dir, ot):
+        mypy_cache = dir / ".mypy_cache" / "3.9"
+        mypy_cache.mkdir(parents=True, exist_ok=True)
+        (mypy_cache / "@plugins_snapshot.json").write_text("{}\n")
+        (dir / "setup.py").write_text("")
+        ot.assert_events({(NameEvent.MODIFIED, dir / "setup.py", None)}, exact=True)
