@@ -18,8 +18,11 @@ class CheckerTestUpdateOnce(dd.Checker):
     def init_ui(self) -> Widget:
         return Label(value="Dummy")
 
-    def run_update(self) -> None:
+    def _run_update(self) -> None:
         self.num_updates += 1
+
+    def clear(self) -> None:
+        raise NotImplementedError()
 
 
 def event(src_path: Path, dest_path: Optional[Path] = None) -> FileSystemEvent:

@@ -58,7 +58,10 @@ class ObservationTest(dd.Checker):
     def init_ui(self) -> Widget:
         return Label(value="")
 
-    def run_update(self) -> None:
+    def _run_update(self) -> None:
+        raise NotImplementedError()
+
+    def clear(self) -> None:
         raise NotImplementedError()
 
     def record_event(
