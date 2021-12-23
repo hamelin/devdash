@@ -6,8 +6,6 @@ import sys
 import time
 from typing import *  # noqa
 
-from ipywidgets import Widget, Label
-from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 import pytest
 
