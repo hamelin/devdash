@@ -6,7 +6,7 @@ import logging as lg
 from pathlib import Path
 import re
 from subprocess import run, PIPE, STDOUT, Popen
-from threading import Lock
+from threading import Lock, Thread
 from typing import *  # noqa
 
 from IPython.display import display
@@ -89,7 +89,7 @@ class Checker(ABC):
         super().__init__
         self.ui = self.init_ui()
         self._lock = Lock()
-        self._is_running = False
+        self._thread_ = None
 
     def _ipython_display_(self) -> None:
         display(self.ui)
@@ -98,19 +98,14 @@ class Checker(ABC):
     def init_ui(self) -> Widget:
         ...
 
-    def run_update(self) -> None:
-        try:
-            with self._lock:
-                if self._is_running:
-                    return
-                self._is_running = True
-            self._run_update()
-        finally:
-            with self._lock:
-                self._is_running = False
+    def update(self) -> None:
+        with self._lock:
+            if self._thread_ is None or not self._thread_.is_alive():
+                self._thread_ = Thread(target=self._update)
+                self._thread_.start()
 
     @abstractmethod
-    def _run_update(self) -> None:
+    def _update(self) -> None:
         ...
 
     @abstractmethod
@@ -171,7 +166,7 @@ class CheckerLinewise(Checker):
     def iter_issues(self, stdout: str) -> Iterator[Issue]:
         ...
 
-    def _run_update(self) -> None:
+    def _update(self) -> None:
         self.trafficlight.yellow()
         cp = run(self.command, stdout=PIPE, stderr=STDOUT, encoding="utf-8")
         rows_issues = []
@@ -310,7 +305,7 @@ class Pytest(Checker):
     def clear(self) -> None:
         self.progress.value = 0
 
-    def _run_update(self) -> None:
+    def _update(self) -> None:
         pytest = Popen(
             ["pytest", "-vv", "--color=yes", "--no-header"],
             encoding="utf-8",
@@ -402,35 +397,42 @@ def _expect_empty(stdout) -> None:
 class Dashboard:
 
     def __init__(self, dir_project: Union[Path, str] = ""):
-        self.checkers = [Flake8(), MyPy(), Pytest()]
-        self.button_auto = Button(description="Auto", button_style="")
-        self.button_auto.on_click(self.on_auto)
-        self.button_run_now = Button(description="Run checks now")
-        self.button_run_now.on_click(self.on_run_now)
-        self.ui = VBox(
+        self._checkers = [Flake8(), MyPy(), Pytest()]
+        self._button_auto = Button(description="Auto", button_style="")
+        self._button_auto.on_click(self.on_auto)
+        self._button_run_now = Button(description="Run checks now")
+        self._button_run_now.on_click(self.on_run_now)
+        self._ui = VBox(
             children=[
-                HBox(children=[self.button_auto, self.button_run_now]),
-                *[ch.ui for ch in self.checkers]
+                HBox(children=[self._button_auto, self._button_run_now]),
+                *[ch.ui for ch in self._checkers]
             ]
         )
-        self.observer: Observer()
-        self.observer_.schedule(self, Path(dir_project or Path.cwd()), recursive=True)
+        tracker = Tracker(self.on_file_changed)
+        self._observer = Observer()
+        self._observer.schedule(
+            tracker,
+            Path(dir_project or Path.cwd()),
+            recursive=True
+        )
+        self._observer.start()
 
     def _ipython_display_(self) -> None:
-        display(self.ui)
+        display(self._ui)
 
     def on_auto(self, _) -> None:
-        if self.observer_:
-            cast(Observer, self.observer_).stop()
-            self.observer_ = None
-            self.button_auto.button_style = ""
+        if self._button_auto.button_style:
+            self._button_auto.button_style = ""
         else:
-            self.observer_ = Observer()
-            for ch in self.checkers:
-                self.observer_.schedule(ch, self.path_project, recursive=True)
-            self.observer_.start()
-            self.button_auto.button_style = "info"
+            self._button_auto.button_style = "info"
 
     def on_run_now(self, _) -> None:
-        for ch in self.checkers:
-            ch.run_update()
+        self._update_checkers()
+
+    def on_file_changed(self, path: Path) -> None:
+        if self._button_auto.button_style:
+            self._update_checkers()
+
+    def _update_checkers(self) -> None:
+        for checker in self._checkers:
+            checker.update()
