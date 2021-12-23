@@ -9,20 +9,21 @@ from test import tree_project
 import devdash as dd
 
 
-class CheckerTestUpdateOnce(dd.Checker):
+class CheckerTestUpdateOnce:
 
     def __init__(self) -> None:
         super().__init__()
-        self.num_updates = 0
+        self.updates = {}
 
     def init_ui(self) -> Widget:
         return Label(value="Dummy")
 
-    def _run_update(self) -> None:
-        self.num_updates += 1
+    def update(self, path: Path) -> None:
+        self.updates[path] = self.updates.get(path, 0) + 1
 
-    def clear(self) -> None:
-        raise NotImplementedError()
+    @property
+    def num_updates(self) -> int:
+        return sum(list(self.updates.values()))
 
 
 def event(src_path: Path, dest_path: Optional[Path] = None) -> FileSystemEvent:
@@ -48,64 +49,63 @@ def event_bin(dir: Path) -> FileSystemEvent:
 
 
 @contextmanager
-def testing_num_updates(
-    num_expected: int = 1
-) -> Iterator[Tuple[Path, CheckerTestUpdateOnce]]:
+def testing_num_updates(n: int = 1) -> Iterator[Tuple[Path, dd.Tracker]]:
     checker = CheckerTestUpdateOnce()
+    tracker = dd.Tracker(checker.update)
     with tree_project() as dir:
-        yield (dir, checker)
-        assert num_expected == checker.num_updates
+        yield (dir, tracker)
+        assert n == checker.num_updates
 
 
 def test_creates() -> None:
-    with testing_num_updates() as (dir, checker):
+    with testing_num_updates() as (dir, tracker):
         for _ in range(2):
-            checker.on_created(event_x(dir))
+            tracker.on_created(event_x(dir))
 
 
 def test_deletes() -> None:
-    with testing_num_updates() as (dir, checker):
+    with testing_num_updates() as (dir, tracker):
         for _ in range(2):
-            checker.on_deleted(event_nx(dir))
+            tracker.on_deleted(event_nx(dir))
 
 
 def test_moves() -> None:
-    with testing_num_updates() as (dir, checker):
+    with testing_num_updates(2) as (dir, tracker):
         for _ in range(2):
-            checker.on_moved(event_bin(dir))
+            tracker.on_moved(event_bin(dir))
 
 
 def test_mods() -> None:
-    with testing_num_updates() as (dir, checker):
+    with testing_num_updates() as (dir, tracker):
         for _ in range(2):
-            checker.on_modified(event_x(dir))
+            tracker.on_modified(event_x(dir))
 
 
 def test_create_mod() -> None:
-    with testing_num_updates() as (dir, checker):
-        checker.on_created(event_x(dir))
-        checker.on_modified(event_x(dir))
+    with testing_num_updates() as (dir, tracker):
+        tracker.on_created(event_x(dir))
+        tracker.on_modified(event_x(dir))
 
 
 def test_mod_create() -> None:
-    with testing_num_updates() as (dir, checker):
-        checker.on_modified(event_x(dir))
-        checker.on_created(event_x(dir))
+    with testing_num_updates() as (dir, tracker):
+        tracker.on_modified(event_x(dir))
+        tracker.on_created(event_x(dir))
 
 
 def test_move_mod() -> None:
-    with testing_num_updates() as (dir, checker):
-        checker.on_moved(event_bin(dir))
-        checker.on_modified(event_x(dir))
+    with testing_num_updates(2) as (dir, tracker):
+        tracker.on_moved(event_bin(dir))
+        tracker.on_modified(event_x(dir))
 
 
 def test_move_create() -> None:
-    with testing_num_updates() as (dir, checker):
-        checker.on_moved(event_bin(dir))
-        checker.on_created(event_x(dir))
+    with testing_num_updates(2) as (dir, tracker):
+        tracker.on_moved(event_bin(dir))
+        tracker.on_created(event_x(dir))
 
 
 def test_move_delete() -> None:
-    with testing_num_updates() as (dir, checker):
-        checker.on_moved(event_bin(dir))
-        checker.on_deleted(event_bin(dir))
+    with testing_num_updates(2) as (dir, tracker):
+        tracker.on_moved(event_bin(dir))
+        tracker.on_deleted(event_bin(dir))
