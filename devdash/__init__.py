@@ -197,7 +197,7 @@ class CheckerLinewise(Checker):
             'padding: 0pt 4pt 0pt 4pt;'
             '}'
             '.db-cell-alt {'
-            'background: #404040;'
+            'background: #dc8787;'
             '}'
             '</style>'
             '<thead>'
