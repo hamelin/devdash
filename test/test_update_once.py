@@ -13,7 +13,7 @@ class CheckerTestUpdateOnce:
 
     def __init__(self) -> None:
         super().__init__()
-        self.updates = {}
+        self.updates: Dict[Path, int] = {}
 
     def init_ui(self) -> Widget:
         return Label(value="Dummy")

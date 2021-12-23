@@ -13,7 +13,7 @@ import devdash as dd
 from test import tree_project
 
 
-AccountPaths = Mapping[Path, int]
+AccountPaths = Dict[Path, int]
 
 
 class ObservationTest(dd.Tracker):
