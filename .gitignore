@@ -3,3 +3,4 @@ __pycache__
 *.py[cd]
 build
 dist
+*.egg-info
