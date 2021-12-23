@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from hashlib import md5
 import io
 from itertools import chain
+import logging as lg
 from pathlib import Path
 import re
 from subprocess import run, PIPE, STDOUT, Popen
@@ -13,6 +14,9 @@ from ipywidgets import HTML, Accordion, HBox, VBox, Widget, Layout, IntProgress,
     Output, Button
 from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
+
+
+LOG = lg.getLogger(__name__)
 
 
 def _event_path(event: FileSystemEvent) -> Path:
@@ -49,27 +53,33 @@ class Tracker(PatternMatchingEventHandler):
 
     def on_created(self, event: FileSystemEvent) -> None:
         p = _event_path(event)
+        LOG.debug(f"Created {p}")
         if p.is_file():
             self._run_update_on_distinct_hash(p, _hash(p))
 
     def on_deleted(self, event: FileSystemEvent) -> None:
-        self._run_update_on_distinct_hash(_event_path(event), b"")
+        p = _event_path(event)
+        LOG.debug(f"Deleted {p}")
+        self._run_update_on_distinct_hash(p, b"")
 
     def on_moved(self, event: FileSystemEvent) -> None:
         s = Path(event.src_path)
         d = Path(event.dest_path)
+        LOG.debug(f"Moved {s} to {d}")
         if d.is_file():
             self._run_update_on_distinct_hash(s, b"")
             self._run_update_on_distinct_hash(d, _hash(d))
 
     def on_modified(self, event: FileSystemEvent) -> None:
         p = _event_path(event)
+        LOG.debug(f"Modified {p}")
         if p.is_file():
             self._run_update_on_distinct_hash(p, _hash(p))
 
     def _run_update_on_distinct_hash(self, path: Path, h: bytes) -> None:
         if h != self.hashes.get(path):
             self.hashes[path] = h
+            LOG.info(f"Update {path}")
             self._update(path)
 
 
