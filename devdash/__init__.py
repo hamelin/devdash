@@ -217,11 +217,11 @@ class CheckerLinewise(Checker):
         if rows_issues:
             self.trafficlight.red()
             self.container.set_title(0, f"{self.title}: {len(rows_issues)} issues")
-            self.container.index_selected = 0
+            self.container.selected_index = 0
         else:
             self.trafficlight.green()
             self.container.set_title(0, f"{self.title}: all good!")
-            self.container.index_selected = None
+            self.container.selected_index = None
 
     def clear(self) -> None:
         self.trafficlight.white()
