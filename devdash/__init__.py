@@ -20,13 +20,18 @@ def _event_path(event: FileSystemEvent) -> Path:
 
 
 def _hash(path: Path) -> bytes:
-    assert path.is_file()
-    return md5(path.read_bytes()).digest()
+    try:
+        return md5(path.read_bytes()).digest()
+    except IOError:
+        return b""
 
 
-class Checker(ABC, PatternMatchingEventHandler):
+Update = Callable[[Path], None]
 
-    def __init__(self):
+
+class Tracker(PatternMatchingEventHandler):
+
+    def __init__(self, update: Update) -> None:
         super().__init__(
             patterns=["*.py", "*.yml", "*.ini", "*.toml", "*.cfg", "*.json", ".flake8"],
             ignore_patterns=[
@@ -39,13 +44,8 @@ class Checker(ABC, PatternMatchingEventHandler):
             ],
             ignore_directories=False
         )
+        self._update = update
         self.hashes: Dict[Path, bytes] = {}
-        self.ui = self.init_ui()
-        self._lock = Lock()
-        self._is_running = False
-
-    def _ipython_display_(self) -> None:
-        display(self.ui)
 
     def on_created(self, event: FileSystemEvent) -> None:
         p = _event_path(event)
@@ -56,9 +56,10 @@ class Checker(ABC, PatternMatchingEventHandler):
         self._run_update_on_distinct_hash(_event_path(event), b"")
 
     def on_moved(self, event: FileSystemEvent) -> None:
-        self.hashes[Path(event.src_path)] = b""
+        s = Path(event.src_path)
         d = Path(event.dest_path)
         if d.is_file():
+            self._run_update_on_distinct_hash(s, b"")
             self._run_update_on_distinct_hash(d, _hash(d))
 
     def on_modified(self, event: FileSystemEvent) -> None:
@@ -69,7 +70,19 @@ class Checker(ABC, PatternMatchingEventHandler):
     def _run_update_on_distinct_hash(self, path: Path, h: bytes) -> None:
         if h != self.hashes.get(path):
             self.hashes[path] = h
-            self.run_update()
+            self._update(path)
+
+
+class Checker(ABC):
+
+    def __init__(self):
+        super().__init__
+        self.ui = self.init_ui()
+        self._lock = Lock()
+        self._is_running = False
+
+    def _ipython_display_(self) -> None:
+        display(self.ui)
 
     @abstractmethod
     def init_ui(self) -> Widget:
@@ -379,7 +392,6 @@ def _expect_empty(stdout) -> None:
 class Dashboard:
 
     def __init__(self, dir_project: Union[Path, str] = ""):
-        self.path_project = Path(dir_project or Path.cwd())
         self.checkers = [Flake8(), MyPy(), Pytest()]
         self.button_auto = Button(description="Auto", button_style="")
         self.button_auto.on_click(self.on_auto)
@@ -391,7 +403,8 @@ class Dashboard:
                 *[ch.ui for ch in self.checkers]
             ]
         )
-        self.observer_: Optional[Observer] = None
+        self.observer: Observer()
+        self.observer_.schedule(self, Path(dir_project or Path.cwd()), recursive=True)
 
     def _ipython_display_(self) -> None:
         display(self.ui)
