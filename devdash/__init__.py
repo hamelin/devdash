@@ -327,7 +327,7 @@ class Pytest(Checker):
 
         return fails
 
-    def _capture_failures(self, stdout: io.TextIOBase, fails: List[str]) -> None:
+    def _capture_failures(self, stdout: Iterator[str], fails: List[str]) -> None:
         _expect_line(stdout, prefix="====", suffix="====", substr="FAILURES")
         children_new: List[Widget] = []
         for i, test in enumerate(fails):
